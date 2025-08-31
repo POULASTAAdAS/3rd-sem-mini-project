@@ -10,15 +10,15 @@ public record DtoStudent(
         Integer age,
         Date bDate
 ) {
-    public EntityStudent withId(int studentId) {
-        return new EntityStudent(studentId, roll, name, age, bDate);
+    public EntityStudent toEntity() {
+        return new EntityStudent(roll, name, age, bDate);
     }
 
     @Override
     public String toString() {
         return "EntityStudent{" +
                 "roll='" + roll + '\'' +
-                ", name='" + name + '\'' +
+                ", title='" + name + '\'' +
                 ", age=" + age +
                 ", bDate=" + bDate +
                 '}';

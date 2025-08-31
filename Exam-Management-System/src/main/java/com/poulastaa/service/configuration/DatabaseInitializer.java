@@ -10,16 +10,16 @@ public class DatabaseInitializer {
     private final static String student = "CREATE TABLE IF NOT EXISTS student (" +
             "id INT AUTO_INCREMENT PRIMARY KEY," +
             "roll VARCHAR(20) NOT NULL," +
-            "name VARCHAR(100) NOT NULL," +
+            "title VARCHAR(100) NOT NULL," +
             "age INT NOT NULL," +
             "bDate DATE NOT NULL" +
             ")";
 
-    private final static String subject = "CREATE TABLE IF NOT EXISTS subject (" +
+    private final static String course = "CREATE TABLE IF NOT EXISTS course (" +
             "id INT AUTO_INCREMENT PRIMARY KEY," +
-            "name VARCHAR(100) NOT NULL," +
+            "title VARCHAR(100) NOT NULL," +
             "code VARCHAR(20) UNIQUE NOT NULL," +
-            "credits DOUBLE NOT NULL" +
+            "duration INT NOT NULL" +
             ")";
 
     private DatabaseInitializer() {
@@ -29,10 +29,8 @@ public class DatabaseInitializer {
             st.executeUpdate(student);
             System.out.println("Students table created successfully!");
 
-
-            st.executeUpdate(subject);
-            System.out.println("Subjects table created successfully!");
-
+            st.executeUpdate(course);
+            System.out.println("courses table created successfully!");
         } catch (SQLException e) {
             System.out.println("Error Initializing Database");
             System.out.println(e.getMessage());

@@ -1,12 +1,15 @@
 package com.poulastaa.service.service;
 
-import com.poulastaa.service.configuration.DatabaseInitializer;
+import com.poulastaa.service.configuration.DataInitializer;
+import com.poulastaa.service.configuration.HibernateConfig;
+import com.poulastaa.service.database.entity.EntityCourse;
 import com.poulastaa.service.database.entity.EntityStudent;
-import com.poulastaa.service.database.entity.EntitySubject;
+import com.poulastaa.service.database.entity.StudentCourse;
+import com.poulastaa.service.database.repository.DaoCourse;
 import com.poulastaa.service.database.repository.DaoStudent;
-import com.poulastaa.service.database.repository.DaoSubject;
+import com.poulastaa.service.database.repository.DaoStudentCourse;
+import com.poulastaa.service.model.dto.DtoCourse;
 import com.poulastaa.service.model.dto.DtoStudent;
-import com.poulastaa.service.model.dto.DtoSubject;
 
 import java.util.List;
 
@@ -14,17 +17,24 @@ public class ExamManagementService {
     private static ExamManagementService instance;
 
     private static DaoStudent daoStudent;
-    private static DaoSubject daoSubject;
+    private static DaoCourse daoCourse;
+    private static DaoStudentCourse daoStudentCourse;
 
     private ExamManagementService() {
-        DatabaseInitializer.instance();
-        daoStudent = DaoStudent.instance();
-        daoSubject = DaoSubject.instance();
+        // Initialize Hibernate SessionFactory
+        HibernateConfig.getSessionFactory(); // This will trigger static initialization
 
-        System.out.println("ExamManagementService Instance are created");
+        // Initialize default data
+        DataInitializer.initialize();
+
+        daoStudent = DaoStudent.instance();
+        daoCourse = DaoCourse.instance();
+        daoStudentCourse = DaoStudentCourse.instance();
+
+        System.out.println("ExamManagementService Instance created with Hibernate");
     }
 
-    // student
+    // Student operations
     public EntityStudent insertStudent(DtoStudent student) {
         return daoStudent.insert(student);
     }
@@ -41,13 +51,47 @@ public class ExamManagementService {
         return daoStudent.updateAgeById(id, age);
     }
 
-    // subject
-    public EntitySubject insertSubject(DtoSubject subject) {
-        return daoSubject.insert(subject);
+    // Course operations
+    public EntityCourse insertCourse(DtoCourse course) {
+        return daoCourse.insert(course);
     }
 
-    public List<EntitySubject> getAllSubjects() {
-        return daoSubject.getAll();
+    public List<EntityCourse> getAllCourses() {
+        return daoCourse.getAll();
+    }
+
+    public boolean deleteCourseById(int id) {
+        return daoCourse.deleteById(id);
+    }
+
+    public EntityCourse findCourseById(int id) {
+        return daoCourse.findById(id);
+    }
+
+    // Student-Course relationship operations
+    public boolean enrollStudentInCourse(int studentId, int courseId) {
+        return daoStudentCourse.enrollStudentInCourse(studentId, courseId);
+    }
+
+    public List<EntityCourse> getCoursesByStudentId(int studentId) {
+        return daoStudentCourse.getCoursesByStudentId(studentId);
+    }
+
+    public List<EntityStudent> getStudentsByCourseId(int courseId) {
+        return daoStudentCourse.getStudentsByCourseId(courseId);
+    }
+
+    public boolean removeStudentFromCourse(int studentId, int courseId) {
+        return daoStudentCourse.removeStudentFromCourse(studentId, courseId);
+    }
+
+    public List<StudentCourse> getAllEnrollments() {
+        return daoStudentCourse.getAllEnrollments();
+    }
+
+    // Cleanup method
+    public void shutdown() {
+        HibernateConfig.shutdown();
     }
 
     public static ExamManagementService instance() {

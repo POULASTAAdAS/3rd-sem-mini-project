@@ -1,115 +1,112 @@
 package com.poulastaa.service.database.repository;
 
-import com.poulastaa.service.configuration.JDBCConnection;
+import com.poulastaa.service.configuration.HibernateConfig;
 import com.poulastaa.service.database.entity.EntityStudent;
 import com.poulastaa.service.model.dto.DtoStudent;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
+import org.hibernate.query.Query;
 
-import java.sql.*;
-import java.util.ArrayList;
 import java.util.List;
 
 public class DaoStudent {
     private static DaoStudent instance;
+    private final SessionFactory sessionFactory;
 
-    private static final String insert = "INSERT INTO student (roll, name, age , bDate) VALUES (?, ?, ?, ?)";
-    private static final String all = "SELECT * FROM student";
-    private static final String delete = "DELETE FROM student WHERE id = ?";
-    final String updateAgeById = "UPDATE student SET age = ? WHERE id = ?";
+    private DaoStudent() {
+        this.sessionFactory = HibernateConfig.getSessionFactory();
+        System.out.println("Student Dao Created");
+    }
 
     public EntityStudent insert(DtoStudent student) {
-        try (Connection con = JDBCConnection.connection();
-             PreparedStatement statement = con.prepareStatement(insert, Statement.RETURN_GENERATED_KEYS)
-        ) {
-            statement.setString(1, student.roll());
-            statement.setString(2, student.name());
-            statement.setInt(3, student.age());
-            statement.setDate(4, student.bDate());
+        Transaction transaction = null;
+        try (Session session = sessionFactory.openSession()) {
+            transaction = session.beginTransaction();
 
-            int isDone = statement.executeUpdate();
+            EntityStudent entityStudent = new EntityStudent(
+                    student.roll(),
+                    student.name(),
+                    student.age(),
+                    student.bDate()
+            );
 
-            if (isDone > 0) {
-                try (ResultSet resultSet = statement.getGeneratedKeys()) {
-                    if (resultSet.next()) {
-                        int id = resultSet.getInt(1);
-                        EntityStudent newStudent = student.withId(id);
-                        System.out.println("Inserted: " + newStudent);
+            session.persist(entityStudent);
+            transaction.commit();
 
-                        return newStudent;
-                    }
-                }
+            System.out.println("Inserted: " + entityStudent);
+            return entityStudent;
+
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
             }
-        } catch (SQLException e) {
             System.out.println("Student Insertion Failed");
             System.out.println(e.getMessage());
+            return null;
         }
-
-        return null;
     }
 
     public List<EntityStudent> getAll() {
-        List<EntityStudent> students = new ArrayList<>();
-
-        try (Connection con = JDBCConnection.connection();
-             PreparedStatement st = con.prepareStatement(all);
-             ResultSet rs = st.executeQuery(all)) {
-            while (rs.next()) {
-                students.add(
-                        new EntityStudent(
-                                rs.getInt("id"),
-                                rs.getString("roll"),
-                                rs.getString("name"),
-                                rs.getInt("age"),
-                                rs.getDate("bDate")
-                        )
-                );
-            }
-        } catch (SQLException e) {
-            System.out.println("Getting All Student Failed");
+        try (Session session = sessionFactory.openSession()) {
+            Query<EntityStudent> query = session.createQuery("FROM EntityStudent", EntityStudent.class);
+            return query.list();
+        } catch (Exception e) {
+            System.out.println("Getting All Students Failed");
             System.out.println(e.getMessage());
+            return List.of();
         }
-
-        return students;
     }
 
     public boolean deleteById(int id) {
-        try (Connection con = JDBCConnection.connection();
-             PreparedStatement st = con.prepareStatement(delete)) {
-            st.setInt(1, id);
-            int isDone = st.executeUpdate();
+        Transaction transaction = null;
+        try (Session session = sessionFactory.openSession()) {
+            transaction = session.beginTransaction();
 
-            if (isDone > 0) {
+            EntityStudent student = session.find(EntityStudent.class, id);
+            if (student != null) {
+                session.remove(student);
+                transaction.commit();
                 System.out.println("Deleted Student with ID: " + id);
                 return true;
+            } else {
+                System.out.println("Student with ID " + id + " not found");
+                return false;
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
             System.out.println("Deleting Student Failed");
             System.out.println(e.getMessage());
+            return false;
         }
-
-        return false;
     }
 
     public boolean updateAgeById(int id, int age) {
-        try (Connection con = JDBCConnection.connection();
-             PreparedStatement st = con.prepareStatement(updateAgeById)) {
-            st.setInt(1, age);
-            st.setInt(2, id);
+        Transaction transaction = null;
+        try (Session session = sessionFactory.openSession()) {
+            transaction = session.beginTransaction();
 
-            int isDone = st.executeUpdate();
-            if (isDone > 0) {
+            EntityStudent student = session.find(EntityStudent.class, id);
+            if (student != null) {
+                student.setAge(age);
+                session.merge(student);
+                transaction.commit();
                 System.out.println("Updated Student with ID: " + id);
                 return true;
+            } else {
+                System.out.println("Student with ID " + id + " not found");
+                return false;
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
             System.out.println("Update Student Failed");
             System.out.println(e.getMessage());
+            return false;
         }
-
-        return false;
-    }
-
-    private DaoStudent() {
-        System.out.println("Student Dao Created");
     }
 
     public static DaoStudent instance() {
